@@ -1,5 +1,5 @@
 #- Version::Semverish -----------------------------------------------------------
-class Version::Semverish:ver<0.0.1>:auth<zef:lizmat> {
+class Version::Semverish:ver<0.0.2>:auth<zef:lizmat> {
     has @.version     is List;
     has @.pre-release is List;
     has @.build       is List;
@@ -150,49 +150,49 @@ class Version::Semverish:ver<0.0.1>:auth<zef:lizmat> {
 #- infixes ---------------------------------------------------------------------
 my multi sub infix:<cmp>(
   Version::Semverish:D $a, Version::Semverish:D $b
---> Order:D) is export {
+--> Order:D) {
     $a.cmp($b)
 }
 
 my multi sub infix:<eqv>(
   Version::Semverish:D $a, Version::Semverish:D $b
---> Bool:D) is export {
+--> Bool:D) {
     $a.eqv($b)
 }
 
 my multi sub infix:<==>(
   Version::Semverish:D $a, Version::Semverish:D $b
---> Bool:D) is export {
+--> Bool:D) {
     $a.cmp($b) == Same
 }
 
 my multi sub infix:<!=>(
   Version::Semverish:D $a, Version::Semverish:D $b
---> Bool:D) is export {
+--> Bool:D) {
     $a.cmp($b) != Same
 }
 
 my multi sub infix:«<» (
   Version::Semverish:D $a, Version::Semverish:D $b
---> Bool:D) is export {
+--> Bool:D) {
     $a.cmp($b) == Less
 }
 
 my multi sub infix:«<=» (
   Version::Semverish:D $a, Version::Semverish:D $b
---> Bool:D) is export {
+--> Bool:D) {
     $a.cmp($b) != More
 }
 
 my multi sub infix:«>» (
   Version::Semverish:D $a, Version::Semverish:D $b
---> Bool:D) is export {
+--> Bool:D) {
     $a.cmp($b) == More
 }
 
 my multi sub infix:«>=» (
   Version::Semverish:D $a, Version::Semverish:D $b
---> Bool:D) is export {
+--> Bool:D) {
     $a.cmp($b) != Less
 }
 
@@ -209,6 +209,35 @@ BEGIN {
     Version::Semverish.^add_method: ">=", { $^a.cmp($^b) != Less }  # UNCOVERABLE
 
     Version::Semverish.^add_method: "~~", { $^b.ACCEPTS($^a) }  # UNCOVERABLE
+}
+
+
+#- EXPORT ----------------------------------------------------------------------
+# To make sure all of the infixes know how to compare Version::Semverish
+# objects, we need to export the current infix candidate chain.  To make
+# it easier for subclasses to export these infixes as well, a list of
+# exports is created at compile time.  This list is then returned as a
+# Map by the "infix-exporter" subroutine.  The actual EXPORT subroutine
+# here, exports the same list of infixes, but *also* exports the
+# "infix-exporter" subroutine as "&EXPORT".  This will then automatically
+# make any subclasses of Version::Semverish to automatically export all
+# of these infixes as well.  Yes, a twisty maze of exports, indeed!
+
+my constant @infix-exports =
+  '&infix:<cmp>' => &infix:<cmp>,
+  '&infix:<eqv>' => &infix:<eqv>,
+  '&infix:<==>'  => &infix:<==>,
+  '&infix:<!=>'  => &infix:<!=>,
+  '&infix:«<»'   => &infix:«<»,
+  '&infix:«<=»'  => &infix:«<=»,
+  '&infix:«>»'   => &infix:«>»,
+  '&infix:«>=»'  => &infix:«>=»,
+;
+
+my sub infix-exporter() { Map.new: @infix-exports }  # UNCOVERABLE
+
+my sub EXPORT() {
+    Map.new: '&EXPORT' => &infix-exporter, |@infix-exports
 }
 
 # vim: expandtab shiftwidth=4

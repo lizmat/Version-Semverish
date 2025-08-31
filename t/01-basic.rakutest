@@ -20,7 +20,10 @@ my @tests is default(Nil) =
   "2.0.2-zip+foo.bar", 2,   0,   2, ("zip",),  <foo bar>,
 ;
 
-plan 2 * (@tests / 6) + 13;
+plan 2 * (@tests / 6) + 14;
+
+# Did an EXPORT sub get exported?
+isa-ok &EXPORT(), Map;
 
 my @versions;
 for @tests -> $spec, $major, $minor, $patch, @pre-release, @build {
