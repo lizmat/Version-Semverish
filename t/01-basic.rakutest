@@ -1,0 +1,162 @@
+use Test;
+use Version::Semverish;
+
+# These tests need to be in ascending order
+my @tests is default(Nil) = 
+  "0",                 0, Nil, Nil, (),        (),
+  "0.0",               0,   0, Nil, (),        (),
+  "0.0.0-1",           0,   0,   0, (1,),      (),
+  "0.0.0-2",           0,   0,   0, (2,),      (),
+  "0.0.0-bar",         0,   0,   0, ("bar",),  (),
+  "0.0.0-foo",         0,   0,   0, ("foo",),  (),
+  "0.0.0-foo.bar",     0,   0,   0, <foo bar>, (),
+  "0.0.0",             0,   0,   0, (),        (),
+  "0.0.1+foo",         0,   0,   1, (),        ("foo",),
+  "0.0.2+foo.bar",     0,   0,   2, (),        <foo bar>,
+  "1.1.4",             1,   1,   4, (),        (),
+  "1.2.3",             1,   2,   3, (),        (),
+  "2.0.0-zip",         2,   0,   0, ("zip",),  (),
+  "2.0.1-zip+foo",     2,   0,   1, ("zip",),  ("foo",),
+  "2.0.2-zip+foo.bar", 2,   0,   2, ("zip",),  <foo bar>,
+;
+
+plan 2 * (@tests / 6) + 13;
+
+my @versions;
+for @tests -> $spec, $major, $minor, $patch, @pre-release, @build {
+    subtest "Testing $spec" => {
+        plan 26;
+
+        my $v = Version::Semverish.new($spec);
+        isa-ok $v, Version::Semverish;
+        @versions.push: $v;
+
+        is-deeply $v.major, $major, 'is major version ok';
+        is-deeply $v.minor, $minor, 'is minor version ok';
+        is-deeply $v.patch, $patch, 'is patch version ok';
+
+        is-deeply $v.pre-release, @pre-release, 'is pre-release ok';
+        is-deeply $v.build,       @build,       'is build ok';
+
+        is-deeply $v cmp $v, Same, 'does cmp with itself give Same';
+        is-deeply $v eqv $v, True, 'does eqv with itself give True';
+
+        is-deeply $v == $v, True,  'does == with itself give True';
+        is-deeply $v != $v, False, 'does != with itself give False';
+
+        is-deeply $v <  $v, False, 'does < with itself give False';
+        is-deeply $v <= $v, True,  'does <= with itself give True';
+        is-deeply $v >  $v, False, 'does > with itself give False';
+        is-deeply $v >= $v, True,  'does >= with itself give True';
+
+        is-deeply $v ~~ $v, True,  'does ~~ with itself give True';
+
+        is-deeply $v.cmp($v), Same, 'does .cmp with itself give Same';
+        is-deeply $v.eqv($v), True, 'does .eqv with itself give True';
+
+        is-deeply $v."=="($v), True,  'does .== with itself give True';
+        is-deeply $v."!="($v), False, 'does .!= with itself give False';
+
+        is-deeply $v."<"($v),  False, 'does .< with itself give False';
+        is-deeply $v."<="($v), True,  'does .<= with itself give True';
+        is-deeply $v.">"($v),  False, 'does .> with itself give False';
+        is-deeply $v.">="($v), True,  'does .>= with itself give True';
+
+        is $v.Str, $spec, 'is the stringification ok';
+
+        my $ve = $v.raku.EVAL;
+        isa-ok $ve, Version::Semverish;
+        is-deeply $v.cmp($ve), Same, 'did we roundtrip ok';
+    }
+}
+
+my int $i;
+for @versions.skip -> $right {
+    my $left := @versions[$i++];
+
+    subtest "Comparing $left with $right" => {
+        plan 32;
+
+        # forward
+        is-deeply $left cmp $right, Less,  'does cmp with next give Less';
+        is-deeply $left eqv $right, False, 'does eqv with next give False';
+
+        is-deeply $left == $right, False, 'does == with next give False';
+        is-deeply $left != $right, True,  'does != with next give True';
+
+        is-deeply $left <  $right, True,  'does < .with next give True';
+        is-deeply $left <= $right, True,  'does <= with next give True';
+        is-deeply $left >  $right, False, 'does > .with next give False';
+        is-deeply $left >= $right, False, 'does >= with next give False';
+
+        is-deeply $left.cmp($right), Less,  'does .cmp with next give Less';
+        is-deeply $left.eqv($right), False, 'does .eqv with next give False';
+
+        is-deeply $left."=="($right), False, 'does .== with next give False';
+        is-deeply $left."!="($right), True,  'does .!= with next give True';
+
+        is-deeply $left."<"($right),  True,  'does .<. with next give True';
+        is-deeply $left."<="($right), True,  'does .<= with next give True';
+        is-deeply $left.">"($right),  False, 'does .>. with next give False';
+        is-deeply $left.">="($right), False, 'does .>= with next give False';
+
+        # backward
+        is-deeply $right cmp $left, More,  'does cmp with prev give Less';
+        is-deeply $right eqv $left, False, 'does eqv with prev give False';
+
+        is-deeply $right == $left, False, 'does == with prev give False';
+        is-deeply $right != $left, True,  'does != with prev give True';
+
+        is-deeply $right <  $left, False, 'does < .with prev give True';
+        is-deeply $right <= $left, False, 'does <= with prev give True';
+        is-deeply $right >  $left, True,  'does > .with prev give False';
+        is-deeply $right >= $left, True,  'does >= with prev give False';
+
+        is-deeply $right.cmp($left), More,  'does .cmp with prev give Less';
+        is-deeply $right.eqv($left), False, 'does .eqv with prev give False';
+
+        is-deeply $right."=="($left), False, 'does .== with prev give False';
+        is-deeply $right."!="($left), True,  'does .!= with prev give True';
+
+        is-deeply $right."<"($left),  False, 'does .<. with prev give True';
+        is-deeply $right."<="($left), False, 'does .<= with prev give True';
+        is-deeply $right.">"($left),  True,  'does .> with prev give False';
+        is-deeply $right.">="($left), True,  'does .>= with prev give False';
+    }
+}
+
+is Version::Semverish.new("v1.0.0"), Version::Semverish.new("1.0.0"),
+  'is leading "v" ignored';
+
+is-deeply Version::Semverish.new("1.2.3").inc, Version::Semverish.new("1.2.4"),
+  'right part got incremented';
+is-deeply Version::Semverish.new("1.2.3").inc(1), Version::Semverish.new("1.3"),
+  'right part got incremented for 1';
+
+throws-like { Version::Semverish.new("") }, X::AdHoc,
+  message => "Version can not be empty";
+throws-like { Version::Semverish.new("0/0") }, X::AdHoc,
+  message => "Version info contains illegal characters";
+throws-like { Version::Semverish.new("1..2") }, X::AdHoc,
+  message => "Version info may not contain empty elements";
+throws-like { Version::Semverish.new("1.02.3") }, X::AdHoc,
+  message => "Version info may not contain leading zeroes";
+
+throws-like { Version::Semverish.new("1.2.3-foo,bar") }, X::AdHoc,
+  message => "Pre-release info contains illegal characters";
+throws-like { Version::Semverish.new("1.2.3-foo..bar") }, X::AdHoc,
+  message => "Pre-release info may not contain empty elements";
+throws-like { Version::Semverish.new("1.2.3-04") }, X::AdHoc,
+  message => "Pre-release info may not contain leading zeroes";
+
+throws-like { Version::Semverish.new("1.2.3+foo,bar") }, X::AdHoc,
+  message => "Build info contains illegal characters";
+throws-like { Version::Semverish.new("1.2.3+foo..bar") }, X::AdHoc,
+  message => "Build info may not contain empty elements";
+throws-like { Version::Semverish.new("1.2.3+04") }, X::AdHoc,
+  message => "Build info may not contain leading zeroes";
+
+throws-like { Version::Semverish.new("1.2.3").inc(3) }, X::AdHoc,
+  message => "Part 3 is not a valid index for incrementing";
+
+# vim: expandtab shiftwidth=4

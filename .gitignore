@@ -1,0 +1,4 @@
+.precomp/
+/Version-Semverish-*
+/releases/
+*.rakucov

@@ -1,0 +1,242 @@
+=begin pod
+
+=head1 NAME
+
+Version::Semverish - Implement Semverish-like Version logic
+
+=head1 SYNOPSIS
+
+=begin code :lang<raku>
+use Version::Semverish;
+
+my $left  = Version::Semverish.new("1.0");
+my $right = Version::Semverish.new("1.a");
+
+# method interface
+say $left.cmp($right);  # Less
+say $left."<"($right);  # True
+
+# infix interface
+say $left cmp $right;  # Less
+say $left < $right;    # True
+=end code
+
+=head1 DESCRIPTION
+
+The C<Version::Semverish> distribution provides a C<Version::Semverish>
+class which encapsulates the logic for creating a
+L<C<Version::Semver>|https://raku.land/zef:lizmat/Version::Semver>-like
+object with semantics loosely matching
+L<Semantic Versioning|https://semver.org/spec/v2.0.0.html>.
+
+It is mostly intended to serve as a base class for any version logic
+that is loosely based on semver semantics.
+
+Semverish extends the semver specification to any number of digits,
+and also allows to include lowercase letters in it. Note that the
+semver standard does not apply any ordering to build-data, but
+Semverish does, with the same logic that is used to order the main
+version and the pre-releases.
+
+=head1 CONFIGURATION METHODS
+
+=head2 has-illegal-characters
+
+=begin code :lang<raku>
+say Version::Semverish.has-illegal-characters("1.2.3");  # False
+say Version::Semverish.has-illegal-characters("1.A.3");  # True
+=end code
+
+The C<has-illegal-characters> method is supposed to return a C<Bool>
+indicating whether the given version string (excluding any "pre-release"
+or "build" information) contains any characters that are not allowed
+in a version speciffication.
+
+By default only C<a..z 0..9 .> are allowed.
+
+=head2 parts
+
+=begin code :lang<raku>
+say Version::Semverish.parts("1.2.3");  # (1 2 3)
+=end code
+
+The C<parts> method is supposed to return an <Iterable> with all of
+the separate version parts for the given version string.
+
+By default it will split the version string on C<".">.
+
+=head2 as-generic-range
+
+=begin code :lang<raku>
+say Version::Semverish.as-generic-range('1.2');      # (== 1.2)
+say Version::Semverish.as-generic-range('>1.2');     # (> 1.2)
+say Version::Semverish.as-generic-range('!=2.2.1);   # (!= 2.2.1)
+say Version::Semverish.as-generic-range('1.2 1.3');  # (== 1.2 == 1.3)
+=end code
+
+The C<as-generic-range> method is supposed to convert a version range
+specification to a generic range specification, consisting of a C<Slip>
+with a string representing a comparator ("!=", "==", ">", ">=", "<",
+"<=") and a C<Version::Semverish> object, possibly repeated of more
+than one range was specified.
+
+By default it will split the version range specification on spaces,
+and test for any of ("!=", "=", "==", ">", ">=", "<", "<=") as
+comparators, and assuming "==" if no comparator was recognized.
+
+=head1 INSTANTIATION
+
+=begin code :lang<raku>
+my $sv = Version::Semverish.new("1.2.3-pre.release+build.data");
+=end code
+
+The basic instantion of a C<Version::Semverish> object is done with
+the C<new> method, taking the version string as a positional argument.
+
+=head1 ACCESSORS
+
+=head2 major
+
+=begin code :lang<raku>
+my $sv = Version::Semverish.new("1.2.3");
+say $sv.major;  # 1
+=end code
+
+Returns the major version value.
+
+=head2 minor
+
+=begin code :lang<raku>
+my $sv = Version::Semverish.new("1.2.3");
+say $sv.minor;  # 2
+=end code
+
+Returns the minor version value.
+
+=head2 patch
+
+=begin code :lang<raku>
+my $sv = Version::Semverish.new("1.2.3");
+say $sv.patch;  # 3
+=end code
+
+Returns the patch value.
+
+=head2 version
+
+=begin code :lang<raku>
+my $sv = Version::Semverish.new("1.2.3.4");
+say $sv.version;  # (1 2 3 4)
+=end code
+
+Returns the constituent parts of the version specification.
+
+=head2 pre-release
+
+=begin code :lang<raku>
+my $sv = Version::Semverish.new("1.2.3-foo.bar");
+say $sv.pre-release;  # (foo bar)
+=end code
+
+Returns a C<List> with the pre-release tokens.
+
+=head2 build
+
+=begin code :lang<raku>
+my $sv = Version::Semverish.new("1.2.3+build.data");
+say $sv.build;  # (build data)
+=end code
+
+Returns a C<List> with the build tokens.
+
+=head1 OTHER METHODS
+
+=head2 inc
+
+=begin code :lang<raku>
+say Version::Semverish.new("1.0").inc;     # Version::Semverish.new("1.1")
+say Version::Semverish.new("1.0").inc(0);  # Version::Semverish.new("2")
+=end code
+
+Returns a newly instantiated C<Version::Semverish> object with the indicated
+part of the version information incremented, starting with "0" for the
+major version part, "1" for the minor, etc.  Defaults to the highest
+possible part.  Removes any lower version parts, and any pre-release or
+build information.
+
+=begin code :lang<raku>
+my $v = Version::Semverish.new("1.0.2-pre+build");
+say $v.inc(:pre-release($v.pre-release), :build($v.build));
+# Version::Semverish.new("1.1-pre+build");
+=end code
+
+Optionally takes C<:pre-release> and C<:build> arguments to add.
+
+=head2 cmp
+
+=begin code :lang<raku>
+my $left  = Version::Semverish.new("1.0");
+my $right = Version::Semverish.new("1.a");
+
+say $left.cmp($left);   # Same
+say $left.cmp($right);  # Less
+say $right.cmp($left);  # More
+=end code
+
+The C<cmp> method returns the C<Order> of a comparison of the invocant
+and the positional argument, which is either C<Less>, C<Same>, or
+C<More>.  This method is the workhorse for comparisons.
+
+=head2 eqv
+
+=begin code :lang<raku>
+my $left  = Version::Semverish.new("1.0.0");
+my $right = Version::Semverish.new("1.0.0");
+
+say $left.eqv($right);  # True
+=end code
+
+The C<eqv> method returns whether the internal state of two
+C<Version::Semverish> objects is identical.
+
+=head2 == != < <= > >=
+
+=begin code :lang<raku>
+my $left  = Version::Semverish.new("1.2.3");
+my $right = Version::Semverish.new("1.2.4");
+
+say $left."=="($left);  # True
+say $left."<"($right);  # True
+=end code
+
+These oddly named methods provide the same functionality as their
+infix counterparts.  Please note that you B<must> use the C<"xx"()>
+syntax, because otherwise the Raku compiler will assume you've made
+a syntax error.
+
+=head1 EXPORTED INFIXES
+
+The following C<infix> candidates handling C<Version::Semverish> are exported:
+=item cmp (returns C<Order>)
+=item eqv == != < <= > >= (returns C<Bool>)
+
+=head1 AUTHOR
+
+Elizabeth Mattijsen <liz@raku.rocks>
+
+Source can be located at: https://github.com/lizmat/Version-Semverish .
+Comments and Pull Requests are welcome.
+
+If you like this module, or what I’m doing more generally, committing to a
+L<small sponsorship|https://github.com/sponsors/lizmat/> would mean a great
+deal to me!
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2025 Elizabeth Mattijsen
+
+This library is free software; you can redistribute it and/or modify it under the Artistic License 2.0.
+
+=end pod
+
+# vim: expandtab shiftwidth=4
