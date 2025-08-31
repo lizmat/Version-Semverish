@@ -3,19 +3,15 @@
   "authors": [
     "Elizabeth Mattijsen"
   ],
-  "build-depends": [
-  ],
   "depends": [
   ],
   "description": "Implement Semverish-like Version logic",
   "license": "Artistic-2.0",
   "name": "Version::Semverish",
   "provides": {
+    "Version::Semverish": "lib/Version/Semverish.rakumod"
   },
   "raku": "6.d",
-  "resources": [
-  ],
-  "source-url": "https://github.com/lizmat/Version-Semverish.git",
   "support": {
     "bugtracker": "https://github.com/lizmat/Version-Semverish/issues",
     "email": "liz@raku.rocks",
@@ -25,8 +21,6 @@
     "VERSION",
     "SEMANTIC",
     "SEMVER"
-  ],
-  "test-depends": [
   ],
   "version": "0.0.1"
 }
