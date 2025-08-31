@@ -1,6 +1,8 @@
 Revision history for Version::Semverish
 
 {{$NEXT}}
+
+0.0.2  2025-08-31T21:41:31+02:00
     - Generalize infix export handling, so that subclasses don't
       have to do weird tricks to make sure infix comparisons work
 
