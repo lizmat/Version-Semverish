@@ -1,4 +1,6 @@
 Revision history for Version::Semverish
 
 {{$NEXT}}
+
+0.0.1  2025-08-31T20:50:04+02:00
     - Initial version, cat-licensed from Version::Conan
